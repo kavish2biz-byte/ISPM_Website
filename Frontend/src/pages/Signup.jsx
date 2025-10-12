@@ -336,7 +336,22 @@ export default function Signup() {
         setError('Please agree to the Terms of Service and Privacy Policy');
         return;
       }
+
+      if (isLoading) {
+        return; // Prevent multiple submissions
+      }
+
+      setIsLoading(true);
+      setError('');
+      setSuccess('');
       
+      // Validate department
+      const validDepartments = ['HR', 'Finance', 'Engineering', 'Sales', 'Operations'];
+      if (!validDepartments.includes(formData.department)) {
+        setError(`Invalid department selected: ${formData.department}`);
+        return;
+      }
+
       // Prepare data for API call
       const userData = {
         name: `${formData.firstName} ${formData.lastName}`,
@@ -345,21 +360,26 @@ export default function Signup() {
         department: formData.department,
         role: 'employee' // Always set to employee for signup
       };
+
+      console.log('Sending signup data:', userData);
       
       // Make API call to signup endpoint
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
       });
-      
+
       const result = await response.json();
-      
-      if (response.ok) {
+
+      console.log('Response status:', response.status);
+      console.log('Response data:', result);
+
+      if (response.ok && result.success) {
         setSuccess('Account created successfully! Redirecting to login...');
-        
+
         // Redirect to login after successful registration
         setTimeout(() => {
           navigate('/login');
