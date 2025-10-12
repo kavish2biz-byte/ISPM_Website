@@ -1,0 +1,43 @@
+# Node
+node_modules/
+.env
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+/dist
+/build
+
+# Vite
+.vite
+
+# VSCode
+.vscode/
+
+# Misc
+*.local
+*.cache
+
+# Coverage
+coverage/
+
+# Database
+*.sqlite
+*.db
+
+# Others
+.idea/
+*.iml
+
+# Ignore frontend and backend build artifacts
+Frontend/dist/
+Backend/dist/
