@@ -196,6 +196,12 @@ const PolicyIcon = () => (
   </svg>
 );
 
+const BellIcon = () => (
+  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2m6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"/>
+  </svg>
+);
+
 const HomeIcon = () => (
   <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
     <path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/>
@@ -217,7 +223,7 @@ export default function Sidebar({ user, onLogout }) {
       ? '/manager-dashboard'
       : '/employee-dashboard';
 
-  const navItems = [
+  const baseItems = [
     { path: dashboardPath, label: 'Dashboard', icon: DashboardIcon },
     { path: '/my-training', label: 'My Training', icon: TrainingIcon },
     { path: '/my-certificates', label: 'My Certificates', icon: CertificateIcon },
@@ -225,6 +231,15 @@ export default function Sidebar({ user, onLogout }) {
     { path: '/videos', label: 'Training Videos', icon: VideoIcon },
     { path: '/policies', label: 'Security Policies', icon: PolicyIcon },
   ];
+
+  // Inject Notifications only for employees to avoid impacting other roles
+  const navItems = user?.role === 'employee'
+    ? [
+        baseItems[0],
+        { path: '/notifications', label: 'Notifications', icon: BellIcon },
+        ...baseItems.slice(1)
+      ]
+    : baseItems;
 
   return (
     <SidebarContainer>

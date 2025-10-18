@@ -393,6 +393,10 @@ const ProgressOverviewCard = styled.div`
   padding: 2rem;
   color: white;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 `;
 
 const ProgressTitle = styled.h3`
@@ -431,7 +435,7 @@ const ProgressLabel = styled.div`
 const ProgressStats = styled.div`
   display: flex;
   justify-content: space-around;
-  margin-top: 1rem;
+  margin-top: auto;
 `;
 
 const ProgressStatItem = styled.div`
@@ -562,6 +566,15 @@ export default function EmployeeDashboard({ user, onLogout }) {
     }
   });
 
+  // Derived summaries based on recent changes (quizzes + notifications)
+  const quizzesSummary = {
+    total: 7,        // matches Quizzes page
+    inProgress: 2,   // ids: 4, 6
+    passed: 1        // id: 1
+  };
+
+  const notificationsCount = 10; // matches Notifications page samples
+
   const [myTraining] = useState([
     {
       id: 1,
@@ -689,6 +702,76 @@ export default function EmployeeDashboard({ user, onLogout }) {
     { name: 'Not Started', value: 3, color: '#6B7280' }
   ];
 
+  // Promotion roadmap visual styles
+  const RoadmapCard = styled.div`
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #E2E8F0;
+  `;
+
+  const RoadmapTrack = styled.div`
+    position: relative;
+    margin-top: 1rem;
+    padding: 1.25rem 0 0.5rem 0;
+  `;
+
+  const RoadmapLine = styled.div`
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #E5E7EB;
+    border-radius: 2px;
+  `;
+
+  const Steps = styled.div`
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    position: relative;
+  `;
+
+  const Step = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 1;
+  `;
+
+  const Dot = styled.div`
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${props => props.$state === 'done' ? '#10B981' : props.$state === 'active' ? '#3B82F6' : '#E5E7EB'};
+    border: 3px solid ${props => props.$state === 'active' ? '#BFDBFE' : 'white'};
+    box-shadow: ${props => props.$state === 'active' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none'};
+  `;
+
+  const StepLabel = styled.div`
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1F2937;
+    text-align: center;
+    white-space: nowrap;
+  `;
+
+  const StepSub = styled.div`
+    font-size: 0.75rem;
+    color: #6B7280;
+    text-align: center;
+  `;
+
+  // Stack container to keep roadmap directly under training progress within left column
+  const LeftColumnStack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  `;
+
   return (
     <Page>
       <Sidebar user={user} onLogout={onLogout} />
@@ -722,8 +805,8 @@ export default function EmployeeDashboard({ user, onLogout }) {
             <ActionButton to="/my-certificates">
               🏆 My Certificates
             </ActionButton>
-            <ActionButton to="/policies">
-              📋 My Policies
+            <ActionButton to="/notifications">
+              🔔 Notifications
             </ActionButton>
             <ActionButton to="/quizzes">
               🧠 Take Quiz
@@ -735,36 +818,36 @@ export default function EmployeeDashboard({ user, onLogout }) {
               <StatIcon bgColor="linear-gradient(135deg, #10B981, #059669)">
                 🎓
               </StatIcon>
-              <StatNumber>{dashboardData.personalOverview.trainingCompleted}</StatNumber>
-              <StatLabel>Training Completed</StatLabel>
-              <StatChange positive>+2 this week</StatChange>
+              <StatNumber>{quizzesSummary.passed}</StatNumber>
+              <StatLabel>Quizzes Passed</StatLabel>
+              <StatChange positive>+1 recently</StatChange>
             </StatCard>
 
             <StatCard>
               <StatIcon bgColor="linear-gradient(135deg, #F59E0B, #D97706)">
                 🏆
               </StatIcon>
-              <StatNumber>{dashboardData.personalOverview.certificatesEarned}</StatNumber>
-              <StatLabel>Certificates Earned</StatLabel>
-              <StatChange positive>+1 new certificate</StatChange>
+              <StatNumber>{quizzesSummary.inProgress}</StatNumber>
+              <StatLabel>Quizzes In Progress</StatLabel>
+              <StatChange positive>Keep it up</StatChange>
             </StatCard>
 
             <StatCard>
               <StatIcon bgColor="linear-gradient(135deg, #3B82F6, #1D4ED8)">
                 📋
               </StatIcon>
-              <StatNumber>{dashboardData.personalOverview.policiesAcknowledged}</StatNumber>
-              <StatLabel>Policies Acknowledged</StatLabel>
-              <StatChange positive>All up to date</StatChange>
+              <StatNumber>{notificationsCount}</StatNumber>
+              <StatLabel>Notifications</StatLabel>
+              <StatChange positive>New updates available</StatChange>
             </StatCard>
 
             <StatCard>
               <StatIcon bgColor="linear-gradient(135deg, #8B5CF6, #7C3AED)">
                 📊
               </StatIcon>
-              <StatNumber>{dashboardData.personalOverview.overallProgress}%</StatNumber>
-              <StatLabel>Overall Progress</StatLabel>
-              <StatChange positive>+5% this month</StatChange>
+              <StatNumber>{Math.round((quizzesSummary.passed + quizzesSummary.inProgress * 0.5) / quizzesSummary.total * 100)}%</StatNumber>
+              <StatLabel>Overall Learning Progress</StatLabel>
+              <StatChange positive>Based on quizzes</StatChange>
             </StatCard>
           </StatsGrid>
 
@@ -786,15 +869,15 @@ export default function EmployeeDashboard({ user, onLogout }) {
 
             <ChartCard>
               <ChartTitle>Training Progress</ChartTitle>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={progressData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={60}
+                    innerRadius={20}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -805,6 +888,21 @@ export default function EmployeeDashboard({ user, onLogout }) {
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '1rem', fontSize: '0.9rem' }}>
+                {progressData.map((entry, index) => (
+                  <div key={index} style={{ textAlign: 'center' }}>
+                    <div style={{ 
+                      width: '12px', 
+                      height: '12px', 
+                      backgroundColor: entry.color, 
+                      borderRadius: '50%', 
+                      margin: '0 auto 4px auto' 
+                    }}></div>
+                    <div style={{ fontWeight: '600', color: '#1F2937' }}>{entry.name}</div>
+                    <div style={{ color: '#6B7280', fontSize: '0.8rem' }}>{entry.value}</div>
+                  </div>
+                ))}
+              </div>
             </ChartCard>
           </ChartsGrid>
 
@@ -867,7 +965,8 @@ export default function EmployeeDashboard({ user, onLogout }) {
           <ProgressOverviewSection>
             <ChartTitle>Overall Progress Overview</ChartTitle>
             <ProgressOverviewGrid>
-              <ProgressOverviewCard>
+              <LeftColumnStack>
+                <ProgressOverviewCard>
                 <ProgressTitle>Training Progress</ProgressTitle>
                 <ProgressCircle>
                   <ProgressCircleInner>
@@ -889,7 +988,42 @@ export default function EmployeeDashboard({ user, onLogout }) {
                     <ProgressStatLabel>Policies</ProgressStatLabel>
                   </ProgressStatItem>
                 </ProgressStats>
-              </ProgressOverviewCard>
+                </ProgressOverviewCard>
+
+                <RoadmapCard>
+                  <ChartTitle>Road to Promotion</ChartTitle>
+                  <RoadmapTrack>
+                    <RoadmapLine />
+                    <Steps>
+                      <Step>
+                        <Dot $state="done" />
+                        <StepLabel>Onboard</StepLabel>
+                        <StepSub>Complete base training</StepSub>
+                      </Step>
+                      <Step>
+                        <Dot $state="done" />
+                        <StepLabel>Certify</StepLabel>
+                        <StepSub>Earn 3 certificates</StepSub>
+                      </Step>
+                      <Step>
+                        <Dot $state="active" />
+                        <StepLabel>Upskill</StepLabel>
+                        <StepSub>Finish 2 quizzes</StepSub>
+                      </Step>
+                      <Step>
+                        <Dot $state="pending" />
+                        <StepLabel>Mentor</StepLabel>
+                        <StepSub>Assist teammates</StepSub>
+                      </Step>
+                      <Step>
+                        <Dot $state="pending" />
+                        <StepLabel>Promote</StepLabel>
+                        <StepSub>Manager track</StepSub>
+                      </Step>
+                    </Steps>
+                  </RoadmapTrack>
+                </RoadmapCard>
+              </LeftColumnStack>
               
               <RecentCertificatesCard>
                 <ChartTitle>Recent Certificates</ChartTitle>
@@ -920,6 +1054,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
                 </CertificateList>
                 <ViewAllLink to="/my-certificates">View All Certificates →</ViewAllLink>
               </RecentCertificatesCard>
+
             </ProgressOverviewGrid>
           </ProgressOverviewSection>
 

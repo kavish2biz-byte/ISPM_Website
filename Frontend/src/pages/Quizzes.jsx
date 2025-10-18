@@ -61,10 +61,13 @@ const QuizzesGrid = styled.div`
 const QuizCard = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid #E2E8F0;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 
   &:hover {
     transform: translateY(-2px);
@@ -76,7 +79,7 @@ const QuizHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
 `;
 
 const QuizTitle = styled.h3`
@@ -107,7 +110,7 @@ const QuizStatus = styled.span`
 
 const QuizDescription = styled.p`
   color: #64748B;
-  margin-bottom: 1rem;
+  margin: 0.25rem 0 0.5rem 0;
   line-height: 1.5;
 `;
 
@@ -115,7 +118,7 @@ const QuizMeta = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin: 0.25rem 0;
   font-size: 0.9rem;
   color: #6B7280;
 `;
@@ -127,6 +130,21 @@ const ScoreSection = styled.div`
   padding: 1rem;
   margin-bottom: 1rem;
   text-align: center;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 10px;
+  background: #E5E7EB;
+  border-radius: 9999px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+  width: ${props => Math.max(0, Math.min(100, props.$value || 0))}%;
+  transition: width 0.3s ease;
 `;
 
 const ScoreTitle = styled.h4`
@@ -147,7 +165,9 @@ const ScoreValue = styled.div`
 
 const QuizActions = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
 `;
 
 const ActionButton = styled.button`
@@ -158,10 +178,11 @@ const ActionButton = styled.button`
   };
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.3s ease;
 
@@ -254,7 +275,48 @@ export default function Quizzes({ user, onLogout }) {
       duration: '12 minutes',
       category: 'Remote Work',
       startedDate: '2025-01-22',
-      attempts: 1
+      attempts: 1,
+      progressPercent: 45
+    },
+    {
+      id: 5,
+      title: 'Phishing Simulation Quiz',
+      description: 'Identify phishing attempts, suspicious links, and social engineering tactics.',
+      status: 'not-started',
+      score: null,
+      maxScore: 100,
+      questions: 12,
+      duration: '10 minutes',
+      category: 'Security',
+      assignedDate: '2025-02-01',
+      attempts: 0
+    },
+    {
+      id: 6,
+      title: 'Data Classification Quiz',
+      description: 'Learn how to classify and handle data according to company policy.',
+      status: 'in-progress',
+      score: null,
+      maxScore: 100,
+      questions: 16,
+      duration: '12 minutes',
+      category: 'Compliance',
+      startedDate: '2025-02-02',
+      attempts: 1,
+      progressPercent: 30
+    },
+    {
+      id: 7,
+      title: 'Secure Coding Basics',
+      description: 'Understand OWASP Top 10 and secure coding practices to prevent vulnerabilities.',
+      status: 'not-started',
+      score: null,
+      maxScore: 100,
+      questions: 20,
+      duration: '15 minutes',
+      category: 'Development',
+      assignedDate: '2025-02-03',
+      attempts: 0
     }
   ]);
 
@@ -341,7 +403,14 @@ export default function Quizzes({ user, onLogout }) {
                       {quiz.status === 'in-progress' ? 'Progress' : 'Latest Score'}
                     </ScoreTitle>
                     {quiz.status === 'in-progress' ? (
-                      <ScoreValue score={0}>In Progress</ScoreValue>
+                      <>
+                        <ProgressBar>
+                          <ProgressFill $value={quiz.progressPercent || 0} />
+                        </ProgressBar>
+                        <div style={{ marginTop: '0.5rem', color: '#374151', fontWeight: 600 }}>
+                          {Math.round(quiz.progressPercent || 0)}%
+                        </div>
+                      </>
                     ) : (
                       <ScoreValue score={quiz.score}>{quiz.score}/{quiz.maxScore}</ScoreValue>
                     )}

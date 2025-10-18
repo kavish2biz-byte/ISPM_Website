@@ -363,8 +363,11 @@ export default function Signup() {
 
       console.log('Sending signup data:', userData);
       
+      // Determine API base URL with fallback to localhost:5001
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+
       // Make API call to signup endpoint
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/signup`, {
+      const response = await fetch(`${API_BASE}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -569,7 +572,7 @@ export default function Signup() {
             </TermsText>
           </CheckboxContainer>
 
-          <SignupButton type="submit" disabled={isLoading}>
+          <SignupButton type="submit" disabled={isLoading || !agreeToTerms}>
             {isLoading ? 'Creating Account...' : 'Create Account'}
           </SignupButton>
         </Form>

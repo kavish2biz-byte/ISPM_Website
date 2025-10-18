@@ -48,6 +48,33 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// Security and account control fields
+userSchema.add({
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date
+  },
+  resetPasswordToken: {
+    type: String
+  },
+  resetPasswordExpires: {
+    type: Date
+  },
+  otpCode: {
+    type: String
+  },
+  otpExpires: {
+    type: Date
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  }
+});
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

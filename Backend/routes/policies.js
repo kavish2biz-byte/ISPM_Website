@@ -3,7 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Policy = require('../models/Policy');
-const PolicyAcknowledgement = require('../models/PolicyAcknowledgement');
+const Acknowledgment = require('../models/Acknowledgment');
+const AuditTrail = require('../models/AuditTrail');
 const { authenticateToken, adminOnly, adminOrManager } = require('../middleware/auth');
 
 const router = express.Router();
@@ -50,6 +51,9 @@ router.get('/', authenticateToken, async (req, res) => {
       status,
       category,
       search,
+      tags,
+      effectiveDateFrom,
+      effectiveDateTo,
       assignedToMe = false
     } = req.query;
 
@@ -63,6 +67,23 @@ router.get('/', authenticateToken, async (req, res) => {
     // Filter by category
     if (category) {
       query.category = category;
+    }
+
+    // Filter by tags
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+
+    // Filter by effective date range
+    if (effectiveDateFrom || effectiveDateTo) {
+      query.effectiveDate = {};
+      if (effectiveDateFrom) {
+        query.effectiveDate.$gte = new Date(effectiveDateFrom);
+      }
+      if (effectiveDateTo) {
+        query.effectiveDate.$lte = new Date(effectiveDateTo);
+      }
     }
 
     // Search functionality
@@ -139,10 +160,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 
     // Check if user has acknowledged this policy
-    const acknowledgment = await PolicyAcknowledgement.findOne({
+    const acknowledgment = await Acknowledgment.findOne({
       policyId: policy._id,
       userId: req.user._id,
-      acknowledgedVersion: policy.version
+      version: policy.version,
+      isActive: true
     });
 
     res.json({
@@ -215,6 +237,17 @@ router.post('/', authenticateToken, adminOnly, upload.single('file'), async (req
     const policy = new Policy(policyData);
     await policy.save();
 
+    // Create audit trail entry
+    await AuditTrail.create({
+      entityType: 'policy',
+      entityId: policy._id,
+      action: 'create',
+      userId: req.user._id,
+      changes: policyData,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
     res.status(201).json({
       success: true,
       message: 'Policy created successfully',
@@ -271,9 +304,41 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
     }
     if (tags) policy.tags = JSON.parse(tags);
 
+    // Store previous values for audit trail
+    const previousValues = policy.toObject();
+    
     policy.lastModifiedBy = req.user._id;
 
+    // Add to revision history
+    const changes = [];
+    if (title && title !== previousValues.title) changes.push(`Title: ${previousValues.title} → ${title}`);
+    if (description && description !== previousValues.description) changes.push(`Description updated`);
+    if (category && category !== previousValues.category) changes.push(`Category: ${previousValues.category} → ${category}`);
+    if (status && status !== previousValues.status) changes.push(`Status: ${previousValues.status} → ${status}`);
+
+    if (changes.length > 0) {
+      policy.revisionHistory.push({
+        version: policy.version,
+        changes: changes.join(', '),
+        modifiedBy: req.user._id,
+        modifiedAt: new Date()
+      });
+    }
+
     await policy.save();
+
+    // Create audit trail entry
+    await AuditTrail.create({
+      entityType: 'policy',
+      entityId: policy._id,
+      action: 'update',
+      userId: req.user._id,
+      previousValues,
+      newValues: policy.toObject(),
+      changes: changes.join(', '),
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
 
     res.json({
       success: true,
@@ -350,10 +415,11 @@ router.post('/:id/acknowledge', authenticateToken, async (req, res) => {
     }
 
     // Check if already acknowledged
-    const existingAcknowledgment = await PolicyAcknowledgement.findOne({
+    const existingAcknowledgment = await Acknowledgment.findOne({
       policyId: policy._id,
       userId: req.user._id,
-      acknowledgedVersion: policy.version
+      version: policy.version,
+      isActive: true
     });
 
     if (existingAcknowledgment) {
@@ -368,17 +434,32 @@ router.post('/:id/acknowledge', authenticateToken, async (req, res) => {
     const isLate = policy.acknowledgmentDeadline && now > policy.acknowledgmentDeadline;
     const daysLate = isLate ? Math.ceil((now - policy.acknowledgmentDeadline) / (1000 * 60 * 60 * 24)) : 0;
 
-    const acknowledgment = new PolicyAcknowledgement({
+    const acknowledgment = new Acknowledgment({
       policyId: policy._id,
       userId: req.user._id,
-      acknowledgedVersion: policy.version,
+      version: policy.version,
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
-      isLate,
-      daysLate
+      acknowledgmentType: 'initial'
     });
 
     await acknowledgment.save();
+
+    // Create audit trail entry
+    await AuditTrail.create({
+      entityType: 'acknowledgment',
+      entityId: acknowledgment._id,
+      action: 'acknowledge',
+      userId: req.user._id,
+      changes: {
+        policyId: policy._id,
+        version: policy.version,
+        isLate,
+        daysLate
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
 
     res.json({
       success: true,
@@ -409,13 +490,13 @@ router.get('/:id/acknowledgments', authenticateToken, adminOrManager, async (req
       // This would require a different approach to find non-acknowledged users
     }
 
-    const acknowledgments = await PolicyAcknowledgement.find(query)
+    const acknowledgments = await Acknowledgment.find(query)
       .populate('userId', 'name email department role')
       .sort({ acknowledgedAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await PolicyAcknowledgement.countDocuments(query);
+    const total = await Acknowledgment.countDocuments(query);
 
     res.json({
       success: true,
@@ -434,6 +515,221 @@ router.get('/:id/acknowledgments', authenticateToken, adminOrManager, async (req
     res.status(500).json({
       success: false,
       message: 'Server error while fetching acknowledgments'
+    });
+  }
+});
+
+// @route   POST /api/policies/:id/version
+// @desc    Create new version of policy (Admin only)
+// @access  Private (Admin)
+router.post('/:id/version', authenticateToken, adminOnly, upload.single('file'), async (req, res) => {
+  try {
+    const originalPolicy = await Policy.findById(req.params.id);
+    
+    if (!originalPolicy || originalPolicy.isDeleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Policy not found'
+      });
+    }
+
+    const { changes, version } = req.body;
+    
+    if (!changes) {
+      return res.status(400).json({
+        success: false,
+        message: 'Changes description is required for new version'
+      });
+    }
+
+    // Create new version
+    const newVersion = originalPolicy.toObject();
+    delete newVersion._id;
+    delete newVersion.createdAt;
+    
+    // Update version number
+    const versionParts = originalPolicy.version.split('.');
+    const majorVersion = parseInt(versionParts[0]);
+    const minorVersion = parseInt(versionParts[1]) + 1;
+    newVersion.version = `${majorVersion}.${minorVersion}`;
+    
+    // Update file if provided
+    if (req.file) {
+      newVersion.fileUrl = req.file.path;
+      newVersion.fileName = req.file.originalname;
+      newVersion.fileSize = req.file.size;
+      newVersion.mimeType = req.file.mimetype;
+    }
+    
+    newVersion.lastModifiedBy = req.user._id;
+    newVersion.createdBy = originalPolicy.createdBy;
+    
+    // Add to revision history
+    newVersion.revisionHistory = [...originalPolicy.revisionHistory, {
+      version: newVersion.version,
+      changes,
+      modifiedBy: req.user._id,
+      modifiedAt: new Date()
+    }];
+
+    const policy = new Policy(newVersion);
+    await policy.save();
+
+    // Create audit trail entry
+    await AuditTrail.create({
+      entityType: 'policy',
+      entityId: policy._id,
+      action: 'create',
+      userId: req.user._id,
+      changes: {
+        originalPolicyId: originalPolicy._id,
+        version: newVersion.version,
+        changes
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'New policy version created successfully',
+      policy
+    });
+
+  } catch (error) {
+    console.error('Create policy version error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating policy version'
+    });
+  }
+});
+
+// @route   GET /api/policies/:id/versions
+// @desc    Get policy version history
+// @access  Private (Admin/Manager)
+router.get('/:id/versions', authenticateToken, adminOrManager, async (req, res) => {
+  try {
+    const policies = await Policy.find({
+      $or: [
+        { _id: req.params.id },
+        { 'revisionHistory.modifiedBy': { $exists: true } }
+      ],
+      isDeleted: false
+    })
+    .populate('createdBy', 'name email')
+    .populate('lastModifiedBy', 'name email')
+    .populate('revisionHistory.modifiedBy', 'name email')
+    .sort({ version: 1 });
+
+    res.json({
+      success: true,
+      versions: policies
+    });
+
+  } catch (error) {
+    console.error('Get policy versions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching policy versions'
+    });
+  }
+});
+
+// @route   GET /api/policies/:id/audit-trail
+// @desc    Get policy audit trail
+// @access  Private (Admin/Manager)
+router.get('/:id/audit-trail', authenticateToken, adminOrManager, async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const auditTrails = await AuditTrail.find({
+      $or: [
+        { entityType: 'policy', entityId: req.params.id },
+        { 'changes.policyId': req.params.id }
+      ]
+    })
+    .populate('userId', 'name email role')
+    .sort({ timestamp: -1 })
+    .limit(limit * 1)
+    .skip((page - 1) * limit);
+
+    const total = await AuditTrail.countDocuments({
+      $or: [
+        { entityType: 'policy', entityId: req.params.id },
+        { 'changes.policyId': req.params.id }
+      ]
+    });
+
+    res.json({
+      success: true,
+      auditTrails,
+      pagination: {
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Get audit trail error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching audit trail'
+    });
+  }
+});
+
+// @route   GET /api/policies/:id/pdf-preview
+// @desc    Get PDF preview URL
+// @access  Private
+router.get('/:id/pdf-preview', authenticateToken, async (req, res) => {
+  try {
+    const policy = await Policy.findById(req.params.id);
+    
+    if (!policy || policy.isDeleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Policy not found'
+      });
+    }
+
+    // Check if user has access to this policy
+    const hasAccess = policy.assignedRoles.includes(req.user.role) ||
+                     policy.assignedDepartments.includes(req.user.department);
+
+    if (!hasAccess && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied to this policy'
+      });
+    }
+
+    // Create audit trail entry for PDF view
+    await AuditTrail.create({
+      entityType: 'policy',
+      entityId: policy._id,
+      action: 'view',
+      userId: req.user._id,
+      changes: { pdfPreview: true },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({
+      success: true,
+      pdfUrl: policy.fileUrl,
+      fileName: policy.fileName,
+      mimeType: policy.mimeType
+    });
+
+  } catch (error) {
+    console.error('Get PDF preview error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching PDF preview'
     });
   }
 });

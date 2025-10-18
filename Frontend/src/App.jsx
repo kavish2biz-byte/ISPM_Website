@@ -18,6 +18,7 @@ import MyTraining from './pages/MyTraining.jsx'
 import MyCertificates from './pages/MyCertificates.jsx'
 import Quizzes from './pages/Quizzes.jsx'
 import Videos from './pages/Videos.jsx'
+import Notifications from './pages/Notifications.jsx'
 import AssignmentManagement from './pages/AssignmentManagement.jsx'
 import TeamManagement from './pages/TeamManagement.jsx'
 import TeamProgress from './pages/TeamProgress.jsx'
@@ -34,6 +35,7 @@ const ProtectedRoute = ({ children, user }) => {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionWarning, setSessionWarning] = useState(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -52,6 +54,30 @@ export default function App() {
     }
     setLoading(false);
   }, []);
+
+  // Session expiry warning (assumes 24h token as in backend)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Backend sets exp to 24h; warn 2 minutes before
+    const issuedAtKey = 'tokenIssuedAt';
+    let issuedAt = Number(localStorage.getItem(issuedAtKey));
+    if (!issuedAt) {
+      issuedAt = Date.now();
+      localStorage.setItem(issuedAtKey, String(issuedAt));
+    }
+    const lifespanMs = 24 * 60 * 60 * 1000;
+    const warnBeforeMs = 2 * 60 * 1000;
+    const warnAt = issuedAt + lifespanMs - warnBeforeMs;
+    const msUntilWarn = Math.max(0, warnAt - Date.now());
+
+    const timer = setTimeout(() => {
+      setSessionWarning('Your session will expire soon. Please save your work.');
+    }, msUntilWarn);
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -77,6 +103,19 @@ export default function App() {
 
   return (
     <Router>
+      {sessionWarning && (
+        <div style={{
+          position: 'fixed', bottom: 16, right: 16, background: '#FEF3C7',
+          border: '1px solid #FDE68A', color: '#92400E', padding: '12px 14px',
+          borderRadius: 8, zIndex: 9999
+        }}>
+          {sessionWarning}
+          <button
+            onClick={() => setSessionWarning(null)}
+            style={{ marginLeft: 12, background: 'transparent', border: 'none', color: '#92400E', cursor: 'pointer' }}
+          >Dismiss</button>
+        </div>
+      )}
       <Routes>
         {/* Public */}
         <Route path="/" element={<Homepage />} />
@@ -140,6 +179,14 @@ export default function App() {
           element={
             <ProtectedRoute user={user}>
               <Videos user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/notifications" 
+          element={
+            <ProtectedRoute user={user}>
+              <Notifications user={user} onLogout={logout} />
             </ProtectedRoute>
           } 
         />
