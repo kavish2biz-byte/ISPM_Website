@@ -63,6 +63,15 @@ app.use('/api/courses', require('./routes/courses'));
 // Compliance routes
 app.use('/api/compliance', require('./routes/compliance'));
 
+// Dashboard routes
+app.use('/api/dashboard', require('./routes/dashboard'));
+
+// Notifications routes
+app.use('/api/notifications', require('./routes/dashboard'));
+
+// Reports routes
+app.use('/api/reports', require('./routes/dashboard'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);

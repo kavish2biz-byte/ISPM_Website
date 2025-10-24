@@ -28,6 +28,10 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
+    // Don't log JWT malformed errors as they're common with invalid tokens
+    if (error.name !== 'JsonWebTokenError') {
+      console.error('Auth middleware error:', error);
+    }
     return res.status(403).json({ 
       success: false, 
       message: 'Invalid or expired token' 
