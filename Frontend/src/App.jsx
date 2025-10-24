@@ -8,6 +8,13 @@ import Policies from './pages/Policies.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
+import AdminUsers from './pages/AdminUsers.jsx'
+import AdminAnalytics from './pages/AdminAnalytics.jsx'
+import AdminReports from './pages/AdminReports.jsx'
+import AdminSettings from './pages/AdminSettings.jsx'
+import PolicyCreate from './pages/PolicyCreate.jsx'
+import PolicyBulkUpload from './pages/PolicyBulkUpload.jsx'
+import PolicyTemplates from './pages/PolicyTemplates.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
 import PolicyManagement from './pages/PolicyManagement.jsx'
@@ -35,7 +42,6 @@ const ProtectedRoute = ({ children, user }) => {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sessionWarning, setSessionWarning] = useState(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -54,30 +60,6 @@ export default function App() {
     }
     setLoading(false);
   }, []);
-
-  // Session expiry warning (assumes 24h token as in backend)
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    // Backend sets exp to 24h; warn 2 minutes before
-    const issuedAtKey = 'tokenIssuedAt';
-    let issuedAt = Number(localStorage.getItem(issuedAtKey));
-    if (!issuedAt) {
-      issuedAt = Date.now();
-      localStorage.setItem(issuedAtKey, String(issuedAt));
-    }
-    const lifespanMs = 24 * 60 * 60 * 1000;
-    const warnBeforeMs = 2 * 60 * 1000;
-    const warnAt = issuedAt + lifespanMs - warnBeforeMs;
-    const msUntilWarn = Math.max(0, warnAt - Date.now());
-
-    const timer = setTimeout(() => {
-      setSessionWarning('Your session will expire soon. Please save your work.');
-    }, msUntilWarn);
-
-    return () => clearTimeout(timer);
-  }, [user]);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -103,19 +85,6 @@ export default function App() {
 
   return (
     <Router>
-      {sessionWarning && (
-        <div style={{
-          position: 'fixed', bottom: 16, right: 16, background: '#FEF3C7',
-          border: '1px solid #FDE68A', color: '#92400E', padding: '12px 14px',
-          borderRadius: 8, zIndex: 9999
-        }}>
-          {sessionWarning}
-          <button
-            onClick={() => setSessionWarning(null)}
-            style={{ marginLeft: 12, background: 'transparent', border: 'none', color: '#92400E', cursor: 'pointer' }}
-          >Dismiss</button>
-        </div>
-      )}
       <Routes>
         {/* Public */}
         <Route path="/" element={<Homepage />} />
@@ -130,7 +99,63 @@ export default function App() {
           path="/admin-dashboard" 
           element={
             <ProtectedRoute user={user}>
-              <AdminDashboard user={user} onLogout={logout} />
+              <AdminDashboard key={`admin-dashboard-${user?.id || 'guest'}`} user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin-users" 
+          element={
+            <ProtectedRoute user={user}>
+              <AdminUsers key={`admin-users-${user?.id || 'guest'}`} user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin-analytics" 
+          element={
+            <ProtectedRoute user={user}>
+              <AdminAnalytics key={`admin-analytics-${user?.id || 'guest'}`} user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin-reports" 
+          element={
+            <ProtectedRoute user={user}>
+              <AdminReports key={`admin-reports-${user?.id || 'guest'}`} user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin-settings" 
+          element={
+            <ProtectedRoute user={user}>
+              <AdminSettings key={`admin-settings-${user?.id || 'guest'}`} user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/policy-create" 
+          element={
+            <ProtectedRoute user={user}>
+              <PolicyCreate user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/policy-bulk" 
+          element={
+            <ProtectedRoute user={user}>
+              <PolicyBulkUpload user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/policy-templates" 
+          element={
+            <ProtectedRoute user={user}>
+              <PolicyTemplates user={user} onLogout={logout} />
             </ProtectedRoute>
           } 
         />
@@ -138,7 +163,7 @@ export default function App() {
           path="/manager-dashboard" 
           element={
             <ProtectedRoute user={user}>
-              <ManagerDashboard user={user} onLogout={logout} />
+              <ManagerDashboard key={`manager-dashboard-${user?.id || 'guest'}`} user={user} onLogout={logout} />
             </ProtectedRoute>
           } 
         />
@@ -146,7 +171,7 @@ export default function App() {
           path="/employee-dashboard" 
           element={
             <ProtectedRoute user={user}>
-              <EmployeeDashboard user={user} onLogout={logout} />
+              <EmployeeDashboard key={`employee-dashboard-${user?.id || 'guest'}`} user={user} onLogout={logout} />
             </ProtectedRoute>
           } 
         />

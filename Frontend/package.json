@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.3",
+    "jspdf": "^3.0.3",
     "lucide-react": "^0.545.0",
     "pdfjs-dist": "^5.4.296",
     "react": "^19.1.1",
@@ -18,8 +19,9 @@
     "react-dom": "^19.1.1",
     "react-pdf": "^10.2.0",
     "react-router-dom": "^7.9.1",
-    "recharts": "^2.10.3",
-    "styled-components": "^6.1.19"
+    "recharts": "^2.15.4",
+    "styled-components": "^6.1.19",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

@@ -30,7 +30,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 2rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #3B82F6;
   margin: 0;
 `;
 
@@ -84,7 +84,7 @@ const CertificateHeader = styled.div`
 const CertificateTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1F2937;
+  color: #3B82F6;
   margin: 0;
   flex: 1;
 `;
@@ -186,7 +186,7 @@ const VerificationSection = styled.div`
 const VerificationTitle = styled.h4`
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: #3B82F6;
   margin: 0 0 0.5rem 0;
 `;
 

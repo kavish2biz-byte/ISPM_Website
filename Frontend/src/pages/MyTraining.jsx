@@ -30,7 +30,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 2rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #3B82F6;
   margin: 0;
 `;
 
@@ -82,7 +82,7 @@ const TrainingHeader = styled.div`
 const TrainingTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1F2937;
+  color: #3B82F6;
   margin: 0;
   flex: 1;
 `;

@@ -364,7 +364,7 @@ export default function Signup() {
       console.log('Sending signup data:', userData);
       
       // Determine API base URL with fallback to localhost:5001
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+      const API_BASE = '';
 
       // Make API call to signup endpoint
       const response = await fetch(`${API_BASE}/api/auth/signup`, {

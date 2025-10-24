@@ -306,9 +306,13 @@ export default function Login() {
         return;
       }
 
+      // Clear any existing tokens to prevent JWT malformed errors
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
       // Try backend API call first
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+        const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -445,7 +449,7 @@ export default function Login() {
               
               // Try backend API call as fallback
               try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/forgot-password`, {
+                const response = await fetch('/api/auth/forgot-password', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
